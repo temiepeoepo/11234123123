@@ -234,6 +234,10 @@ local WHITELIST_NAMES = { "Graipuss Medussi", "Nooo My Hotspot", "La Sahur Combi
 -- Helpers
 local function parseMoney(text)
     text = string.lower(text or "")
+    -- Only parse if it contains /s (per second indicator)
+    if not text:find("/s") then
+        return 0
+    end
     local num = tonumber(text:match("[%d%.]+")) or 0
     if text:find("k") then
         num *= 1e3
@@ -271,12 +275,14 @@ local function findAllPets()
             
             for _, child in ipairs(obj:GetChildren()) do
                 if child:IsA("BillboardGui") or child:IsA("SurfaceGui") then
-                    for _, label in ipairs(child:GetChildren()) do
+                    for _, label in ipairs(child:GetDescendants()) do
                         if label:IsA("TextLabel") then
                             local labelName = label.Name
+                            local text = label.Text or ""
+                            
                             if labelName == "DisplayName" then
                                 displayNameLabel = label
-                            elseif labelName == "Generation" then
+                            elseif labelName == "Generation" and text:find("/s") then
                                 generationLabel = label
                             end
                         end
@@ -289,12 +295,15 @@ local function findAllPets()
                 local generation = generationLabel.Text or "0"
                 local value = parseMoney(generation)
                 
-                table.insert(results, {
-                    part = obj,
-                    displayName = displayName,
-                    generation = generation,
-                    value = value
-                })
+                -- Only add if it has a valid value
+                if value > 0 then
+                    table.insert(results, {
+                        part = obj,
+                        displayName = displayName,
+                        generation = generation,
+                        value = value
+                    })
+                end
             end
         end
     end
