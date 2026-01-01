@@ -228,14 +228,13 @@ end)
 --// =======================
 --// BEST-EARNING PET TRACKER (Enhanced)
 --// =======================
-local VALUE_THRESHOLD = 5e6 -- highlight pets earning ≥ 5M/sec
-local WHITELIST_NAMES = { "Graipuss Medussi", "Nooo My Hotspot", "La Sahur Combinasion", "Pot Hotspot", "Chicleteira Bicicleteira"}
-local MAX_DISTANCE = 25000 -- max distance from map center
+local VALUE_THRESHOLD = 1e7
+local WHITELIST_NAMES = { "Nooo My Hotspot" }
+local EXCLUSION_ZONE = Vector3.new(0.03246767607386970, 2.76837086677551270, -1.08126354217529300)
+local EXCLUSION_RADIUS = 20
 
--- Helpers
 local function parseMoney(text)
     text = string.lower(text or "")
-    -- Only parse if it contains /s (per second indicator)
     if not text:find("/s") then
         return 0
     end
@@ -263,7 +262,6 @@ end
 
 local function findAllPets()
     local results = {}
-    local mapCenter = Vector3.new(0, 0, 0) -- adjust if needed
     
     local debrisFolder = workspace:FindFirstChild("Debris")
     if not debrisFolder then
@@ -272,9 +270,8 @@ local function findAllPets()
     
     for _, obj in ipairs(debrisFolder:GetChildren()) do
         if obj:IsA("BasePart") then
-            -- Check distance from map center
-            local distance = (obj.Position - mapCenter).Magnitude
-            if distance > MAX_DISTANCE then
+            local distance = (obj.Position - EXCLUSION_ZONE).Magnitude
+            if distance <= EXCLUSION_RADIUS then
                 continue
             end
             
@@ -303,7 +300,6 @@ local function findAllPets()
                 local generation = generationLabel.Text or "0"
                 local value = parseMoney(generation)
                 
-                -- Only add if it has a valid value
                 if value > 0 then
                     table.insert(results, {
                         part = obj,
@@ -319,8 +315,7 @@ local function findAllPets()
     return results
 end
 
--- Visuals
-local tracked = {} -- part -> { highlight, billboard, label }
+local tracked = {}
 
 local function clearVisuals(part)
     if tracked[part] then
@@ -337,11 +332,11 @@ local function setVisuals(part, name, value, kind)
     local highlight = Instance.new("Highlight")
     highlight.Name = "PetHighlight_Client"
     if kind == "top" then
-        highlight.FillColor = Color3.fromRGB(0,255,0) -- green
+        highlight.FillColor = Color3.fromRGB(0,255,0)
     elseif kind == "whitelist" then
-        highlight.FillColor = Color3.fromRGB(0,128,255) -- blue
-    else -- threshold
-        highlight.FillColor = Color3.fromRGB(255,215,0) -- gold
+        highlight.FillColor = Color3.fromRGB(0,128,255)
+    else
+        highlight.FillColor = Color3.fromRGB(255,215,0)
     end
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
     highlight.FillTransparency = 0.5
@@ -376,7 +371,6 @@ local function setVisuals(part, name, value, kind)
     tracked[part] = { highlight, billboardGui, textLabel }
 end
 
--- Update loop
 local function updateBest()
     local allPets = findAllPets()
     
@@ -388,38 +382,32 @@ local function updateBest()
     for _, petData in ipairs(allPets) do
         activeParts[petData.part] = true
         
-        -- Track best
         if petData.value > bestValue then
             bestValue = petData.value
             bestPet = petData
         end
         
-        -- Whitelist
         for _, w in ipairs(WHITELIST_NAMES) do
             if petData.displayName == w then
                 table.insert(extraList, {petData.part, petData.displayName, petData.value, "whitelist"})
             end
         end
         
-        -- Threshold
         if petData.value >= VALUE_THRESHOLD then
             table.insert(extraList, {petData.part, petData.displayName, petData.value, "threshold"})
         end
     end
     
-    -- Clear old tracked parts that no longer exist or are too far
     for part in pairs(tracked) do
         if not activeParts[part] or not part.Parent then
             clearVisuals(part)
         end
     end
     
-    -- Top pet
     if bestPet then
         setVisuals(bestPet.part, bestPet.displayName, bestPet.value, "top")
     end
     
-    -- Extras
     for _, entry in ipairs(extraList) do
         local part, name, val, kind = unpack(entry)
         if part and not tracked[part] then
