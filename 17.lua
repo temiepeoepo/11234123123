@@ -220,7 +220,7 @@ scanTimers()
 workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("TextLabel") and obj.Text:match("%ds") and not isExcluded(obj.Text) then
         local adornee = obj:FindFirstAncestorWhichIsA("BasePart")
-        if adornee and adornee.Position.Y <= 7 then
+        if adorne and adornee.Position.Y <= 7 then
             makeBillboard(adornee, obj)
         end
     end
@@ -1471,480 +1471,189 @@ end
 -- ======================= 
 -- DESYNC/ANTI-HIT SCRIPT 
 -- ======================= 
-local player = game.Players.LocalPlayer
-local character = player.Character
-
--- Godmode Script First
-if character then
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.MaxHealth = math.huge
-        humanoid.Health = math.huge
-        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-            humanoid.Health = math.huge
-        end)
-    end
-end
-
--- Desync/Remote Event Script
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local PhysicsService = game:GetService("PhysicsService")
-local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-local Humanoid = Character:WaitForChild("Humanoid")
-
-local DESYNC_ENABLED = false
-local FAKE_POSITION = nil
-local CLIENT_POSITION = nil
-local UPDATE_INTERVAL = 1.0
-local lastUpdate = tick()
-local OFFSET_RANGE = 4
-local DEBOUNCE = false
-local LAST_F_PRESS = 0
-local DOUBLE_PRESS_THRESHOLD = 0.3
-
--- Server position visualizer
-local serverPosBox = nil
-
--- Function to create/update server position box
-local function createServerPosBox()
-    if serverPosBox then
-        serverPosBox:Destroy()
-    end
+-- Desync FFlags Configuration
+local DesyncFFlags = {
+    -- Core Desync Flags
+    DisableDPIScale = true,
+    S2PhysicsSenderRate = 1500,
     
-    serverPosBox = Instance.new("Part")
-    serverPosBox.Name = "ServerPositionBox"
-    serverPosBox.Size = Vector3.new(4, 5, 3)
-    serverPosBox.Transparency = 0.7
-    serverPosBox.Color = Color3.fromRGB(255, 0, 0)
-    serverPosBox.Material = Enum.Material.Neon
-    serverPosBox.CanCollide = false
-    serverPosBox.Anchored = true
-    serverPosBox.Parent = workspace
+    -- Bandwidth & Network
+    PhysicsSenderMaxBandwidthBps = 100000,
+    ServerMaxBandwith = 200,
+    MaxDataPacketPerSend = 100000,
     
-    -- Add outline
-    local selectionBox = Instance.new("SelectionBox")
-    selectionBox.Adornee = serverPosBox
-    selectionBox.LineThickness = 0.05
-    selectionBox.Color3 = Color3.fromRGB(255, 255, 0)
-    selectionBox.Parent = serverPosBox
+    -- Update Delay Tolerance
+    MaxAcceptableUpdateDelay = 200,
     
-    -- Add text label above box
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Size = UDim2.new(0, 200, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-    billboardGui.AlwaysOnTop = true
-    billboardGui.Parent = serverPosBox
+    -- Velocity & Position Thresholds
+    AngularVelociryLimit = 360,
+    GameNetDontSendRedundantDeltaPositionMillionth = 200000,
+    InterpolationFrameRotVelocityThresholdMillionth = 300000,
+    InterpolationFramePositionThresholdMillionth = 300000,
+    InterpolationFrameVelocityThresholdMillionth = 300000,
     
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = "WHERE OTHERS SEE YOU"
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-    textLabel.TextScaled = true
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    textLabel.Parent = billboardGui
-end
-
--- Function to update server position box
-local function updateServerPosBox()
-    if DESYNC_ENABLED and HumanoidRootPart and FAKE_POSITION then
-        if not serverPosBox then
-            createServerPosBox()
-        end
-        -- Show box at fake/server position
-        serverPosBox.CFrame = FAKE_POSITION
-        serverPosBox.Transparency = 0.5
-    else
-        if serverPosBox then
-            serverPosBox.Transparency = 1
-        end
-    end
-end
-
--- Create blur effect
-local function createBlurEffect()
-    local blurEffect = Instance.new("BlurEffect")
-    blurEffect.Name = "FlingBlur"
-    blurEffect.Size = 0
-    blurEffect.Parent = game:GetService("Lighting")
-    return blurEffect
-end
-
-local blurEffect = createBlurEffect()
-
--- Function to toggle blur
-local function toggleSyncEffects(enabled)
-    if enabled then
-        -- Max blur
-        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(blurEffect, tweenInfo, {Size = 50})
-        tween:Play()
-    else
-        -- Remove blur
-        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(blurEffect, tweenInfo, {Size = 0})
-        tween:Play()
-    end
-end
+    -- Velocity Checks
+    CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent = 200,
+    CheckPVCachedVelThresholdPercent = 200,
+    CheckPVCachedRotVelThresholdPercent = 200,
+    CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth = 200,
+    CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth = 200,
+    
+    -- Timestep & World Step
+    TimestepArbiterOmegaThou = 500000,
+    TimestepArbiterHumanoidTurningVelThreshold = 100,
+    TimestepArbiterHumanoidLinearVelThreshold = 100,
+    TimestepArbiterVelocityCriteriaThresholdTwoDt = 100000,
+    MaxTimestepMultiplierAcceleration = 10000,
+    MaxTimestepMultiplierContstraint = 10000,
+    MaxTimestepMultiplierBuoyancy = 10000,
+    SimExplicitlyCappedTimestepMultiplier = 10000,
+    WorldStepMax = 60,
+    
+    -- Missed Steps & Redundancy
+    MaxMissedWorldStepsRemembered = 300,
+    GameNetDontSendRedundantNumTimes = 20,
+    DebugSendDistInSteps = 200,
+    
+    -- Velocity Cutoffs
+    GameNetPVHeaderRotationalVelocityZeroCutoffExponent = -5000,
+    GameNetPVHeaderLinearVelocityZeroCutoffExponent = -5000,
+    
+    -- Replication & Streaming
+    StreamJobNOUVolumeCap = 100000,
+    StreamJobNOUVolumeLengthCap = 100000,
+    SimOwnedNOUCountThresholdMillionth = 100000,
+    ReplicationFocusNouExtentsSizeCutoffForPauseStuds = 100000,
+    
+    -- Large Replicator Flags
+    LargeReplicatorEnabled9 = true,
+    LargeReplicatorWrite5 = true,
+    LargeReplicatorRead5 = true,
+    LargeReplicatorSerializeWrite4 = true,
+    LargeReplicatorSerializeRead3 = true,
+    NextGenReplicatorEnabledWrite4 = true,
+}
 
 -- Create GUI
 local function createGUI()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DesyncGUI"
+    screenGui.Name = "DesyncFlagsGUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Start Button
-    local startButton = Instance.new("TextButton")
-    startButton.Size = UDim2.new(0, 100, 0, 40)
-    startButton.Position = UDim2.new(0, 10, 0, 10)
-    startButton.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-    startButton.Text = "START"
-    startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    startButton.TextSize = 18
-    startButton.Font = Enum.Font.GothamBold
-    startButton.BorderSizePixel = 0
-    startButton.Parent = screenGui
+    -- Main Button
+    local button = Instance.new("TextButton")
+    button.Name = "ApplyButton"
+    button.Size = UDim2.new(0, 120, 0, 40)
+    button.Position = UDim2.new(0, 10, 0, 10)
+    button.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+    button.Text = "APPLY FFLAGS"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 16
+    button.Font = Enum.Font.GothamBold
+    button.BorderSizePixel = 0
+    button.Parent = screenGui
     
-    local startCorner = Instance.new("UICorner")
-    startCorner.CornerRadius = UDim.new(0, 8)
-    startCorner.Parent = startButton
+    -- Rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    -- Status Label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(0, 120, 0, 25)
+    statusLabel.Position = UDim2.new(0, 10, 0, 55)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = ""
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusLabel.TextSize = 12
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = screenGui
     
     screenGui.Parent = game:GetService("CoreGui")
     
-    return screenGui, startButton
+    return screenGui, button, statusLabel
 end
 
-local gui, startBtn = createGUI()
+local gui, applyBtn, statusLbl = createGUI()
 
--- First print statement
-print("hello " .. LocalPlayer.DisplayName .. " if ur anti hit aint working anymore press the desync button or press f again ty")
-
--- Second print statement
-print("TUTORIAL: just press the button then it should work IF IT DOSENT HERES AN TUTORIAL FOR PC NOT MOBILE IT SHOULD WORK IF U PRESS THE BUTTON IM SURE. PRESS F 2x if u dont wanna press the button then it should work too")
-
-pcall(function()
-    PhysicsService:RegisterCollisionGroup("NoCollide")
-    PhysicsService:CollisionGroupSetCollidable("NoCollide", "Default", false)
-end)
-
-local function applyFFlags(enable)
-    pcall(function()
-        if enable then
-            setfflag("WorldStepMax", "-1000000")
-            setfflag("DFIntS2PhysicsSenderRate", "1")
-            setfflag("DFIntAssemblyExtentsExpansionStudHundredth", "1000")
-            setfflag("FFlagRakNetForceUseUnreliable", "True")
-            setfflag("FFlagDebugDisableTelemetryV2Event", "True")
-            setfflag("DFIntNetworkLatencyTolerance", "9999")
-            setfflag("DFIntTaskSchedulerTargetFps", "1")
-            setfflag("DFIntNetworkPhysicsSenderRate", "1")
-            setfflag("DFIntNetworkPhysicsRate", "1")
-            setfflag("DFIntCharacterCollisionUpdateRate", "1")
-            setfflag("DFIntCharacterControllerUpdateRate", "1")
-        else
-            setfflag("WorldStepMax", "0")
-            setfflag("DFIntS2PhysicsSenderRate", "60")
-            setfflag("DFIntAssemblyExtentsExpansionStudHundredth", "0")
-            setfflag("DFIntNetworkLatencyTolerance", "100")
-            setfflag("DFIntTaskSchedulerTargetFps", "60")
-            setfflag("DFIntNetworkPhysicsSenderRate", "60")
-            setfflag("DFIntNetworkPhysicsRate", "60")
-            setfflag("DFIntCharacterCollisionUpdateRate", "30")
-            setfflag("DFIntCharacterControllerUpdateRate", "30")
-        end
-    end)
-end
-
-local function setClientOwnership()
-    for _, part in pairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function()
-                if DESYNC_ENABLED then
-                    -- Don't modify ANY body parts - let them behave normally
-                    -- Desync happens through FFlags, not part manipulation
-                    part.Anchored = false
-                else
-                    part:SetNetworkOwner(LocalPlayer)
-                    part.Anchored = false
-                    part.CollisionGroup = "Default"
-                    part.CanCollide = true
-                    part.Massless = false
-                end
-            end)
-        end
-        -- Keep ALL welds and Motor6Ds completely untouched
-    end
+-- Function to apply FFlags
+local function applyDesyncFFlags()
+    applyBtn.Text = "APPLYING..."
+    applyBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 0)
+    statusLbl.Text = "Applying FFlags..."
+    statusLbl.TextColor3 = Color3.fromRGB(255, 255, 0)
     
-    pcall(function()
-        sethiddenproperty(LocalPlayer, "SimulationRadius", 99999)
-    end)
-end
-
-local function initializeDesync()
-    if HumanoidRootPart then
-        -- Set fake position ahead of time without moving anything
-        FAKE_POSITION = HumanoidRootPart.CFrame * CFrame.new(
-            math.random(-OFFSET_RANGE, OFFSET_RANGE),
-            0,
-            math.random(-OFFSET_RANGE, OFFSET_RANGE)
-        )
-        CLIENT_POSITION = nil -- Don't lock position
-        
-        -- Apply FFlags first before touching any parts
-        applyFFlags(true)
-        wait(0.1)
-        
-        -- Then gently adjust ownership without forcing positions
-        setClientOwnership()
-        createServerPosBox()
-    end
-end
-
-local function toggleDesync()
-    DESYNC_ENABLED = not DESYNC_ENABLED
+    local success = 0
+    local total = 0
     
-    if DESYNC_ENABLED then
-        initializeDesync()
-    else
-        applyFFlags(false)
-        setClientOwnership()
-        CLIENT_POSITION = nil -- Fix freeze bug
-        
-        pcall(function()
-            Humanoid:ChangeState(Enum.HumanoidStateType.Running)
-            Humanoid.PlatformStand = false
-            Humanoid.Sit = false
-            Humanoid.AutoRotate = true
-        end)
-        
-        if serverPosBox then
-            serverPosBox:Destroy()
-            serverPosBox = nil
-        end
-    end
-end
-
--- Function to check and equip Quantum Cloner tool
-local function equipQuantumCloner()
-    local equippedTool = Character:FindFirstChildOfClass("Tool")
-    
-    -- Check if Quantum Cloner is already equipped
-    if equippedTool and equippedTool.Name == "Quantum Cloner" then
-        print("Quantum Cloner is already equipped!")
-        return true
-    end
-    
-    -- Look for Quantum Cloner in backpack
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    if backpack then
-        local quantumCloner = backpack:FindFirstChild("Quantum Cloner")
-        if quantumCloner then
-            print("Equipping Quantum Cloner from backpack...")
-            Humanoid:EquipTool(quantumCloner)
-            wait(0.2) -- Wait for equip to complete
-            return true
-        end
-    end
-    
-    warn("Quantum Cloner tool not found in backpack!")
-    return false
-end
-
--- ONLY USE REMOTE EVENT - NO FLINGING AT ALL
-local function fireQuantumTeleport()
-    if not Character or not HumanoidRootPart then return end
-    
-    toggleSyncEffects(true)
-    
-    -- Check and equip Quantum Cloner if needed
-    if equipQuantumCloner() then
-        -- Fire UseItem event first
-        local UseItemEvent = game:GetService("ReplicatedStorage").Packages.Net["RE/UseItem"]
-        UseItemEvent:FireServer()
-        print("Fired UseItem event!")
-        
-        wait(0.1)
-        
-        -- Fire the QuantumCloner teleport event
-        local TeleportEvent = game:GetService("ReplicatedStorage").Packages.Net["RE/QuantumCloner/OnTeleport"]
-        TeleportEvent:FireServer()
-        print("Fired QuantumCloner teleport event!")
-    else
-        warn("Cannot fire events - Quantum Cloner not equipped!")
-    end
-    
-    -- Brief wait for server to process
-    wait(0.3)
-    toggleSyncEffects(false)
-end
-
--- Auto F spam function - Fire remote event FIRST, then 2x desync toggles
-local function spamF()
-    -- Check and equip Quantum Cloner if needed
-    if equipQuantumCloner() then
-        -- FIRE UseItem EVENT FIRST
-        local UseItemEvent = game:GetService("ReplicatedStorage").Packages.Net["RE/UseItem"]
-        UseItemEvent:FireServer()
-        print("Fired UseItem event FIRST!")
-        
-        wait(0.1)
-        
-        -- FIRE TELEPORT EVENT
-        local TeleportEvent = game:GetService("ReplicatedStorage").Packages.Net["RE/QuantumCloner/OnTeleport"]
-        TeleportEvent:FireServer()
-        print("Fired QuantumCloner teleport event!")
-    else
-        warn("Cannot fire events - Quantum Cloner not equipped!")
-    end
-    
-    wait(0.5)
-    
-    -- Then do the desync toggles
-    for i = 1, 2 do
-        if not DEBOUNCE then
-            DEBOUNCE = true
-            toggleDesync()
-            wait(1)
-            DEBOUNCE = false
-        end
-    end
-end
-
--- Button Connection
-startBtn.MouseButton1Click:Connect(function()
-    spamF()
-end)
-
-RunService.RenderStepped:Connect(function()
-    if not DESYNC_ENABLED or not Character or not HumanoidRootPart then
+    -- Check if setfflag exists
+    if not setfflag then
+        statusLbl.Text = "Error: setfflag not found!"
+        statusLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
+        applyBtn.Text = "APPLY FFLAGS"
+        applyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+        warn("setfflag function not available in this exploit")
         return
     end
     
-    -- Minimal interference - just keep character responsive
-    pcall(function()
-        Humanoid.PlatformStand = false
-        Humanoid.Sit = false
-        HumanoidRootPart.Anchored = false
-    end)
-    
-    -- Update server position box
-    updateServerPosBox()
-end)
-
-RunService.Heartbeat:Connect(function()
-    if not DESYNC_ENABLED or not Character or not HumanoidRootPart or not FAKE_POSITION then
-        return
-    end
-    
-    if tick() - lastUpdate >= UPDATE_INTERVAL then
-        pcall(function()
-            -- Update fake position to follow player smoothly
-            local currentPos = HumanoidRootPart.Position
-            local distance = (currentPos - FAKE_POSITION.Position).Magnitude
-            
-            -- Keep fake position closer and update less frequently
-            if distance > OFFSET_RANGE * 3 then
-                FAKE_POSITION = CFrame.new(currentPos) * CFrame.new(
-                    math.random(-OFFSET_RANGE, OFFSET_RANGE),
-                    0,
-                    math.random(-OFFSET_RANGE, OFFSET_RANGE)
-                )
+    for flag, value in pairs(DesyncFFlags) do
+        total = total + 1
+        local ok, err = pcall(function()
+            -- Convert boolean to string for FFlags that need it
+            if type(value) == "boolean" then
+                setfflag(flag, tostring(value))
+            else
+                setfflag(flag, value)
             end
-            
-            -- DON'T move any body parts at all - let desync happen naturally through FFlags
-            -- Only visual indicator (server box) shows the desync
         end)
-        
-        lastUpdate = tick()
-    end
-end)
-
--- Monitor for new parts/welds being added
-Character.DescendantAdded:Connect(function(descendant)
-    if not DESYNC_ENABLED then return end
-    
-    task.wait(0.1)
-    pcall(function()
-        if descendant:IsA("BasePart") then
-            descendant.Anchored = false
-        end
-        -- Don't disable any welds or constraints
-    end)
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed or DEBOUNCE or input.KeyCode ~= Enum.KeyCode.F then
-        return
-    end
-    
-    local currentTime = tick()
-    
-    if currentTime - LAST_F_PRESS <= DOUBLE_PRESS_THRESHOLD then
-        if not DEBOUNCE then
-            DEBOUNCE = true
-            fireQuantumTeleport()
-            wait(0.5)
-            DEBOUNCE = false
-        end
-    else
-        if not DEBOUNCE then
-            DEBOUNCE = true
-            toggleDesync()
-            wait(0.3)
-            DEBOUNCE = false
+        if ok then
+            success = success + 1
+        else
+            warn("Failed to set FFlag:", flag, err)
         end
     end
     
-    LAST_F_PRESS = currentTime
-end)
-
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    HumanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
-    Humanoid = newChar:WaitForChild("Humanoid")
+    statusLbl.Text = string.format("Applied %d/%d", success, total)
+    statusLbl.TextColor3 = Color3.fromRGB(0, 255, 0)
     
-    -- Reapply godmode on respawn
-    if Humanoid then
-        Humanoid.MaxHealth = math.huge
-        Humanoid.Health = math.huge
-        Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-            Humanoid.Health = math.huge
-        end)
-    end
+    wait(1)
     
-    if DESYNC_ENABLED then
-        wait(1)
-        initializeDesync()
-    end
-end)
+    applyBtn.Text = "APPLIED!"
+    applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    
+    wait(2)
+    
+    -- Reset button
+    applyBtn.Text = "APPLY FFLAGS"
+    applyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+    statusLbl.Text = ""
+end
 
--- Clean up effects when script ends
-game:GetService("Lighting").ChildRemoved:Connect(function(child)
-    if child.Name == "FlingBlur" then
-        blurEffect = createBlurEffect()
-    end
+-- Button click handler
+applyBtn.MouseButton1Click:Connect(function()
+    applyDesyncFFlags()
 end)
 
 -- Recreate GUI if removed
 game:GetService("CoreGui").ChildRemoved:Connect(function(child)
-    if child.Name == "DesyncGUI" then
-        gui, startBtn = createGUI()
+    if child.Name == "DesyncFlagsGUI" then
+        gui, applyBtn, statusLbl = createGUI()
         
         -- Reconnect button
-        startBtn.MouseButton1Click:Connect(function()
-            spamF()
+        applyBtn.MouseButton1Click:Connect(function()
+            applyDesyncFFlags()
         end)
     end
 end)
+
+print("Desync FFlags GUI loaded! Click the button to apply.")
 
 --// =======================
 --// SILENT BEST PET TRACKER + AUTO GRAPPLE
