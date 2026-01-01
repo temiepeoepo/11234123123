@@ -230,6 +230,7 @@ end)
 --// =======================
 local VALUE_THRESHOLD = 5e6 -- highlight pets earning ≥ 5M/sec
 local WHITELIST_NAMES = { "Graipuss Medussi", "Nooo My Hotspot", "La Sahur Combinasion", "Pot Hotspot", "Chicleteira Bicicleteira"}
+local MAX_DISTANCE = 25000 -- max distance from map center
 
 -- Helpers
 local function parseMoney(text)
@@ -262,6 +263,7 @@ end
 
 local function findAllPets()
     local results = {}
+    local mapCenter = Vector3.new(0, 0, 0) -- adjust if needed
     
     local debrisFolder = workspace:FindFirstChild("Debris")
     if not debrisFolder then
@@ -270,6 +272,12 @@ local function findAllPets()
     
     for _, obj in ipairs(debrisFolder:GetChildren()) do
         if obj:IsA("BasePart") then
+            -- Check distance from map center
+            local distance = (obj.Position - mapCenter).Magnitude
+            if distance > MAX_DISTANCE then
+                continue
+            end
+            
             local displayNameLabel = nil
             local generationLabel = nil
             
@@ -375,8 +383,11 @@ local function updateBest()
     local bestValue = -math.huge
     local bestPet = nil
     local extraList = {}
+    local activeParts = {}
     
     for _, petData in ipairs(allPets) do
+        activeParts[petData.part] = true
+        
         -- Track best
         if petData.value > bestValue then
             bestValue = petData.value
@@ -396,9 +407,11 @@ local function updateBest()
         end
     end
     
-    -- Clear old
+    -- Clear old tracked parts that no longer exist or are too far
     for part in pairs(tracked) do
-        clearVisuals(part)
+        if not activeParts[part] or not part.Parent then
+            clearVisuals(part)
+        end
     end
     
     -- Top pet
