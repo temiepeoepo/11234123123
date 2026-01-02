@@ -220,7 +220,7 @@ scanTimers()
 workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("TextLabel") and obj.Text:match("%ds") and not isExcluded(obj.Text) then
         local adornee = obj:FindFirstAncestorWhichIsA("BasePart")
-        if adorne and adornee.Position.Y <= 7 then
+        if adornee and adornee.Position.Y <= 7 then
             makeBillboard(adornee, obj)
         end
     end
