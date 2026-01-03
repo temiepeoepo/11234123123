@@ -444,7 +444,7 @@ if player.Character then updateCharacter() end
 --- =======================
 -- AUTO-RELOAD ON TELEPORT (Lean & Session-Only)
 -- =======================
-local ADMIN_RAW_URL = "https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/17.lua" -- replace with your raw script URL
+local ADMIN_RAW_URL = "https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/173.lua" -- replace with your raw script URL
 -- Use a session-only flag so it only queues if you already executed this session
 if shared._AutoReloadQueued then
     return -- already queued this session, do nothing
