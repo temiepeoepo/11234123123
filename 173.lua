@@ -1278,6 +1278,11 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+
+--// =======================
+--// Desync
+--// =======================
+
 -- Desync FFlags Configuration
 local DesyncFFlags = {
     -- Core Desync Flags
@@ -1461,244 +1466,236 @@ print("Desync FFlags GUI loaded! Click the button to apply.")
 -- =======================
 -- PROXIMITY PROMPT BUTTONS
 -- =======================
-do
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
+
+local yCoordinates = {
+    [1] = -3.73539066,
+    [2] = 15.672575,
+    [3] = 22.9842033
+}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ProximityPromptGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local container = Instance.new("Frame")
+container.Size = UDim2.new(0, 70, 0, 220)
+container.Position = UDim2.new(1, -80, 0.5, -110)
+container.BackgroundTransparency = 1
+container.Parent = screenGui
+
+local function createButton(number, yPos)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 60, 0, 60)
+    button.Position = UDim2.new(0, 5, 0, (number - 1) * 70 + 10)
+    button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    button.Text = tostring(number)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 28
+    button.Font = Enum.Font.GothamBold
+    button.BorderSizePixel = 2
+    button.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    button.Parent = container
     
-    local yCoordinates = {
-        [1] = -3.73539066,
-        [2] = 15.672575,
-        [3] = 22.9842033
-    }
-
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ProximityPromptGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = game:GetService("CoreGui")
-
-    -- Container positioned horizontally on top of mobile toolbar
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0, 165, 0, 35) -- Container sized for 50x30 buttons
-    container.Position = UDim2.new(0.5, -82.5, 1, -45) -- Centered, above bottom toolbar
-    container.AnchorPoint = Vector2.new(0.5, 1)
-    container.BackgroundTransparency = 1
-    container.Parent = screenGui
-
-    local function createButton(number, yPos)
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0, 50, 0, 30) -- 50 wide by 30 tall
-        button.Position = UDim2.new(0, (number - 1) * 55 + 2.5, 0, 2.5) -- Horizontal positioning with spacing
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(230, 40, 40)
+    end)
+    
+    button.MouseLeave:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        button.Text = tostring(number)
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 20 -- Text size adjusted for 30 height
-        button.Font = Enum.Font.GothamBold
-        button.BorderSizePixel = 2
-        button.BorderColor3 = Color3.fromRGB(255, 255, 255)
-        button.Parent = container
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 8)
-        corner.Parent = button
-        
-        button.MouseEnter:Connect(function()
-            button.BackgroundColor3 = Color3.fromRGB(230, 40, 40)
-        end)
-        
-        button.MouseLeave:Connect(function()
-            button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        end)
-        
-        return button
+    end)
+    
+    return button
+end
+
+local buttons = {}
+for i = 1, 3 do
+    buttons[i] = createButton(i, yCoordinates[i])
+end
+
+local currentLine = nil
+
+local function createLineToPrompt(promptPosition)
+    if currentLine then
+        currentLine:Destroy()
     end
-
-    local buttons = {}
-    for i = 1, 3 do
-        buttons[i] = createButton(i, yCoordinates[i])
-    end
-
-    local currentLine = nil
-
-    local function createLineToPrompt(promptPosition)
-        if currentLine then
-            currentLine:Destroy()
+    
+    local character = player.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    local line = Instance.new("Part")
+    line.Anchored = true
+    line.CanCollide = false
+    line.Material = Enum.Material.Neon
+    line.Color = Color3.fromRGB(0, 255, 0)
+    line.TopSurface = Enum.SurfaceType.Smooth
+    line.BottomSurface = Enum.SurfaceType.Smooth
+    
+    local startPos = humanoidRootPart.Position
+    local endPos = promptPosition
+    local distance = (endPos - startPos).Magnitude
+    
+    line.Size = Vector3.new(0.2, 0.2, distance)
+    line.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -distance / 2)
+    line.Parent = workspace
+    
+    currentLine = line
+    
+    task.delay(3, function()
+        if line and line.Parent then
+            line:Destroy()
         end
-        
-        local character = player.Character
-        if not character then return end
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        
-        local line = Instance.new("Part")
-        line.Anchored = true
-        line.CanCollide = false
-        line.Material = Enum.Material.Neon
-        line.Color = Color3.fromRGB(0, 255, 0)
-        line.TopSurface = Enum.SurfaceType.Smooth
-        line.BottomSurface = Enum.SurfaceType.Smooth
-        
-        local startPos = humanoidRootPart.Position
-        local endPos = promptPosition
-        local distance = (endPos - startPos).Magnitude
-        
-        line.Size = Vector3.new(0.2, 0.2, distance)
-        line.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -distance / 2)
-        line.Parent = workspace
-        
-        currentLine = line
-        
-        task.delay(3, function()
-            if line and line.Parent then
-                line:Destroy()
-            end
-        end)
-    end
+    end)
+end
 
-    local function getAllProximityPrompts()
-        local prompts = {}
-        
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("ProximityPrompt") then
-                local parent = descendant.Parent
-                while parent do
-                    if parent:IsA("Folder") and parent.Name == "Unlock" then
-                        table.insert(prompts, descendant)
-                        break
-                    end
-                    parent = parent.Parent
+local function getAllProximityPrompts()
+    local prompts = {}
+    
+    for _, descendant in pairs(workspace:GetDescendants()) do
+        if descendant:IsA("ProximityPrompt") then
+            local parent = descendant.Parent
+            while parent do
+                if parent:IsA("Folder") and parent.Name == "Unlock" then
+                    table.insert(prompts, descendant)
+                    break
                 end
+                parent = parent.Parent
             end
         end
-        
-        return prompts
     end
+    
+    return prompts
+end
 
-    local function findNearestPromptAtY(prompts, targetY)
-        local character = player.Character
-        if not character then return nil end
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return nil end
-        
-        local nearestPrompt = nil
-        local shortestDistance = math.huge
-        local playerPosition = humanoidRootPart.Position
-        
-        local yTolerance = 5
-        
-        for _, prompt in pairs(prompts) do
-            if prompt.Enabled and prompt.Parent then
-                local promptPosition = prompt.Parent.Position
-                local yDifference = math.abs(promptPosition.Y - targetY)
+local function findNearestPromptAtY(prompts, targetY)
+    local character = player.Character
+    if not character then return nil end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return nil end
+    
+    local nearestPrompt = nil
+    local shortestDistance = math.huge
+    local playerPosition = humanoidRootPart.Position
+    
+    local yTolerance = 5
+    
+    for _, prompt in pairs(prompts) do
+        if prompt.Enabled and prompt.Parent then
+            local promptPosition = prompt.Parent.Position
+            local yDifference = math.abs(promptPosition.Y - targetY)
+            
+            if yDifference <= yTolerance then
+                local distance = (playerPosition - promptPosition).Magnitude
                 
-                if yDifference <= yTolerance then
-                    local distance = (playerPosition - promptPosition).Magnitude
-                    
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        nearestPrompt = prompt
-                    end
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPrompt = prompt
                 end
             end
         end
-        
-        return nearestPrompt, shortestDistance
     end
+    
+    return nearestPrompt, shortestDistance
+end
 
-    local function activatePromptAtY(buttonNumber)
-        local button = buttons[buttonNumber]
-        local targetY = yCoordinates[buttonNumber]
+local function activatePromptAtY(buttonNumber)
+    local button = buttons[buttonNumber]
+    local targetY = yCoordinates[buttonNumber]
+    
+    button.Text = "..."
+    button.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    
+    wait(0.1)
+    
+    local prompts = getAllProximityPrompts()
+    
+    if #prompts == 0 then
+        button.Text = "X"
+        wait(1)
+        button.Text = tostring(buttonNumber)
+        button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local originalValues = {}
+    for _, prompt in pairs(prompts) do
+        originalValues[prompt] = {
+            MaxActivationDistance = prompt.MaxActivationDistance,
+            HoldDuration = prompt.HoldDuration,
+            RequiresLineOfSight = prompt.RequiresLineOfSight
+        }
+    end
+    
+    for _, prompt in pairs(prompts) do
+        prompt.MaxActivationDistance = 999999
+        prompt.HoldDuration = 0
+        prompt.RequiresLineOfSight = false
+    end
+    
+    local nearestPrompt, distance = findNearestPromptAtY(prompts, targetY)
+    
+    if nearestPrompt then
+        local promptPosition = nearestPrompt.Parent.Position
+        createLineToPrompt(promptPosition)
         
-        button.Text = "..."
-        button.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+        local success = false
         
-        task.wait(0.1)
+        pcall(function()
+            nearestPrompt.Triggered:Fire(player)
+            success = true
+        end)
         
-        local prompts = getAllProximityPrompts()
-        
-        if #prompts == 0 then
-            button.Text = "X"
-            task.wait(1)
-            button.Text = tostring(buttonNumber)
-            button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-            return
-        end
-        
-        local originalValues = {}
-        for _, prompt in pairs(prompts) do
-            originalValues[prompt] = {
-                MaxActivationDistance = prompt.MaxActivationDistance,
-                HoldDuration = prompt.HoldDuration,
-                RequiresLineOfSight = prompt.RequiresLineOfSight
-            }
-        end
-        
-        for _, prompt in pairs(prompts) do
-            prompt.MaxActivationDistance = 999999
-            prompt.HoldDuration = 0
-            prompt.RequiresLineOfSight = false
-        end
-        
-        local nearestPrompt, distance = findNearestPromptAtY(prompts, targetY)
-        
-        if nearestPrompt then
-            local promptPosition = nearestPrompt.Parent.Position
-            createLineToPrompt(promptPosition)
-            
-            local success = false
-            
+        if not success then
             pcall(function()
-                nearestPrompt.Triggered:Fire(player)
+                nearestPrompt.Triggered:Fire()
                 success = true
             end)
-            
-            if not success then
-                pcall(function()
-                    nearestPrompt.Triggered:Fire()
-                    success = true
-                end)
-            end
-            
-            if not success and fireproximityprompt then
-                pcall(function()
-                    fireproximityprompt(nearestPrompt, 0)
-                    success = true
-                end)
-            end
-            
-            if success then
-                button.Text = "✓"
-                button.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-            else
-                button.Text = "X"
-                button.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-            end
-            
-            task.wait(1)
-            button.Text = tostring(buttonNumber)
-            button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        else
-            button.Text = "X"
-            task.wait(1)
-            button.Text = tostring(buttonNumber)
-            button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
         end
         
-        for prompt, values in pairs(originalValues) do
-            if prompt and prompt.Parent then
-                prompt.MaxActivationDistance = values.MaxActivationDistance
-                prompt.HoldDuration = values.HoldDuration
-                prompt.RequiresLineOfSight = values.RequiresLineOfSight
-            end
+        if not success and fireproximityprompt then
+            pcall(function()
+                fireproximityprompt(nearestPrompt, 0)
+                success = true
+            end)
         end
-    end
-
-    for i = 1, 3 do
-        buttons[i].MouseButton1Click:Connect(function()
-            activatePromptAtY(i)
-        end)
+        
+        if success then
+            button.Text = "✓"
+            button.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+        else
+            button.Text = "X"
+            button.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        
+        wait(1)
+        button.Text = tostring(buttonNumber)
+        button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    else
+        button.Text = "X"
+        wait(1)
+        button.Text = tostring(buttonNumber)
+        button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
     end
     
-    print("[Proximity Buttons] Loaded - Horizontal above toolbar (50x30)")
+    for prompt, values in pairs(originalValues) do
+        if prompt and prompt.Parent then
+            prompt.MaxActivationDistance = values.MaxActivationDistance
+            prompt.HoldDuration = values.HoldDuration
+            prompt.RequiresLineOfSight = values.RequiresLineOfSight
+        end
+    end
+end
+
+for i = 1, 3 do
+    buttons[i].MouseButton1Click:Connect(function()
+        activatePromptAtY(i)
+    end)
 end
 
 --// =======================
