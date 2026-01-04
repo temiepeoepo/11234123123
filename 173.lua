@@ -5,6 +5,7 @@ local player = Players.LocalPlayer
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool2.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool3.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/trippy.lua"))()
 
 --// =======================
 --// AUTO-FIRE ON MANUAL EQUIP
