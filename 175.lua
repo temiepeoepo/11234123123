@@ -3,10 +3,6 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool2.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool3.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/trippy.lua"))()
-
 --// =======================
 --// AUTO-FIRE ON MANUAL EQUIP
 --// =======================
@@ -445,7 +441,7 @@ if player.Character then updateCharacter() end
 --- =======================
 -- AUTO-RELOAD ON TELEPORT (Lean & Session-Only)
 -- =======================
-local ADMIN_RAW_URL = "https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/173.lua" -- replace with your raw script URL
+local ADMIN_RAW_URL = "https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/175.lua" -- replace with your raw script URL
 -- Use a session-only flag so it only queues if you already executed this session
 if shared._AutoReloadQueued then
     return -- already queued this session, do nothing
@@ -1726,5 +1722,12 @@ do
     
     print("[Control Enabler] Continuously enabling controls")
 end
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool2.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool3.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/trippy.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/money1.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/money.lua"))()
+
 
 
