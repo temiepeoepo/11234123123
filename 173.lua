@@ -6,6 +6,8 @@ local player = Players.LocalPlayer
 loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool2.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/cool3.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/trippy.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/money.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/temiepeoepo/11234123123/refs/heads/main/money1.lua"))()
 
 --// =======================
 --// AUTO-FIRE ON MANUAL EQUIP
@@ -1726,6 +1728,5 @@ do
     
     print("[Control Enabler] Continuously enabling controls")
 end
-
 
 
